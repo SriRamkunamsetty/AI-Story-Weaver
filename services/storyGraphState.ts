@@ -165,8 +165,22 @@ export class StoryGraphState {
     // 3. Audit relationship flips (e.g., ally vs enemy)
     characterNodes.forEach(c => {
       const cEdges = edges.filter(e => e.source === c.id || e.target === c.id);
-      const isAlly = cEdges.some(e => e.relationship.includes('ALLY') || e.relationship.includes('FRIEND') || e.relationship.includes('PROTECT'));
-      const isEnemy = cEdges.some(e => e.relationship.includes('ENEMY') || e.relationship.includes('ATTACK') || e.relationship.includes('BETRAY') || e.relationship.includes('FIGHT'));
+      const isAlly = cEdges.some(e => 
+        e.relationship.includes('ALLY') || 
+        e.relationship.includes('ALLI') || 
+        e.relationship.includes('FRIEND') || 
+        e.relationship.includes('PROTECT') ||
+        e.relationship.includes('AID') ||
+        e.relationship.includes('HELP')
+      );
+      const isEnemy = cEdges.some(e => 
+        e.relationship.includes('ENEMY') || 
+        e.relationship.includes('ATTACK') || 
+        e.relationship.includes('BETRAY') || 
+        e.relationship.includes('FIGHT') ||
+        e.relationship.includes('FOE') ||
+        e.relationship.includes('HARM')
+      );
       if (isAlly && isEnemy) {
         issues.push(`Character '${c.name}' has shifting allegiance (ally & opponent) in past scenes. Maintain logical character motivations.`);
       }
