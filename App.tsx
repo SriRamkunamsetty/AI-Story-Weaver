@@ -15,11 +15,13 @@ import { IntegrationsModal } from './components/IntegrationsModal';
 import { ChapterOutlineDrawer } from './components/ChapterOutlineDrawer';
 import { StoryGraphModal } from './components/StoryGraphModal';
 import { StoryTimelineMap } from './components/StoryTimelineMap';
+import { BilingualStoryModal } from './components/BilingualStoryModal';
+import { KeyboardShortcutsModal } from './components/KeyboardShortcutsModal';
 import { BackgroundManager } from './components/BackgroundManager';
 import { StoryLibrary } from './components/StoryLibrary';
 import { AudioController } from './components/AudioController';
 import { useToast } from './components/ToastContext';
-import { Workflow, Bot, Printer, BookOpen, Sparkles, Mic, CheckCircle2, Headphones, Music, Share2, GitFork } from 'lucide-react';
+import { Workflow, Bot, Printer, BookOpen, Sparkles, Mic, CheckCircle2, Headphones, Music, Share2, GitFork, Languages, Keyboard } from 'lucide-react';
 import { extractChapters, setChapterAtSegment, removeChapterAtSegment, getChapterStats } from './utils/chapterUtils';
 import { AuthCallback } from './components/AuthCallback';
 import { VoicePromptModal } from './components/VoicePromptModal';
@@ -196,6 +198,8 @@ function StoryCreatorContent() {
   const [isVoiceModalOpen, setIsVoiceModalOpen] = useState<boolean>(false);
   const [isGraphModalOpen, setIsGraphModalOpen] = useState<boolean>(false);
   const [isTimelineMapOpen, setIsTimelineMapOpen] = useState<boolean>(false);
+  const [isBilingualModalOpen, setIsBilingualModalOpen] = useState<boolean>(false);
+  const [isShortcutsModalOpen, setIsShortcutsModalOpen] = useState<boolean>(false);
   const [externalPrompt, setExternalPrompt] = useState<string>('');
   const [isFocusMode, setIsFocusMode] = useState<boolean>(false);
   const [storybookMode, setStorybookMode] = useState<boolean>(false);
@@ -313,6 +317,8 @@ function StoryCreatorContent() {
         else if (isVideoModalOpen) setIsVideoModalOpen(false);
         else if (isGraphModalOpen) setIsGraphModalOpen(false);
         else if (isTimelineMapOpen) setIsTimelineMapOpen(false);
+        else if (isBilingualModalOpen) setIsBilingualModalOpen(false);
+        else if (isShortcutsModalOpen) setIsShortcutsModalOpen(false);
       } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'm') {
         e.preventDefault();
         setIsVoiceModalOpen(prev => !prev);
@@ -322,11 +328,17 @@ function StoryCreatorContent() {
       } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 't') {
         e.preventDefault();
         setIsTimelineMapOpen(prev => !prev);
+      } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'b') {
+        e.preventDefault();
+        setIsBilingualModalOpen(prev => !prev);
+      } else if (e.key === '?' && !['INPUT', 'TEXTAREA'].includes((e.target as HTMLElement)?.tagName)) {
+        e.preventDefault();
+        setIsShortcutsModalOpen(prev => !prev);
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isFocusMode, isSettingsOpen, isChapterDrawerOpen, isIntegrationsOpen, isVideoModalOpen, isVoiceModalOpen, isGraphModalOpen, isTimelineMapOpen]);
+  }, [isFocusMode, isSettingsOpen, isChapterDrawerOpen, isIntegrationsOpen, isVideoModalOpen, isVoiceModalOpen, isGraphModalOpen, isTimelineMapOpen, isBilingualModalOpen, isShortcutsModalOpen]);
 
   // Global listener for OAuth callbacks (Google & GitHub)
   useEffect(() => {
@@ -1923,6 +1935,29 @@ function StoryCreatorContent() {
                 </button>
               )}
 
+              {/* Bilingual Dual-Language Learning Studio Button */}
+              {segments.length > 0 && (
+                <button
+                  onClick={() => setIsBilingualModalOpen(true)}
+                  title="Bilingual & Dual-Language Learning Studio (Ctrl+B)"
+                  className="flex items-center justify-center gap-1.5 px-3 h-9 text-purple-200 hover:bg-purple-600/30 hover:text-white hover:border-purple-400/40 rounded-full transition-all duration-200 bg-white/5 border border-white/10 text-xs font-semibold shadow-sm"
+                >
+                  <Languages className="w-4 h-4 text-purple-300" />
+                  <span className="hidden md:inline">
+                    Bilingual
+                  </span>
+                </button>
+              )}
+
+              {/* Keyboard Shortcuts Cheatsheet Button */}
+              <button
+                onClick={() => setIsShortcutsModalOpen(true)}
+                title="Keyboard Shortcuts & Accessibility (?)"
+                className="flex items-center justify-center w-9 h-9 text-purple-200 hover:bg-purple-600/30 hover:text-white rounded-full transition-all duration-200 active:scale-95 bg-white/5 border border-white/10"
+              >
+                <Keyboard className="w-4 h-4" />
+              </button>
+
 
 
               {/* Integrations & Agents Hub Button */}
@@ -2202,6 +2237,19 @@ function StoryCreatorContent() {
         segments={segments}
         storyTitle={title || 'Untitled Story'}
         onJumpToSegment={handleJumpToSegment}
+      />
+
+      <BilingualStoryModal
+        isOpen={isBilingualModalOpen}
+        onClose={() => setIsBilingualModalOpen(false)}
+        segments={segments}
+        storyTitle={title || 'Untitled Story'}
+        userApiKey={userApiKey}
+      />
+
+      <KeyboardShortcutsModal
+        isOpen={isShortcutsModalOpen}
+        onClose={() => setIsShortcutsModalOpen(false)}
       />
     </motion.div>
   );
