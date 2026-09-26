@@ -16,6 +16,8 @@ interface ParagraphCardProps {
   audioProgress?: number;
   onSeekWord?: (progressRatio: number) => void;
   imageAspectRatio?: string;
+  knownCharacters?: string[];
+  dialogueProvider?: 'gemini' | 'openai' | 'pollinations';
 }
 
 export const ParagraphCard: React.FC<ParagraphCardProps> = ({ 
@@ -28,6 +30,8 @@ export const ParagraphCard: React.FC<ParagraphCardProps> = ({
   audioProgress = 0,
   onSeekWord,
   imageAspectRatio = '16:9',
+  knownCharacters = [],
+  dialogueProvider = 'gemini' as const,
 }) => {
   const { theme, processParagraphForVfx } = useVfx();
 
@@ -103,8 +107,8 @@ export const ParagraphCard: React.FC<ParagraphCardProps> = ({
   }, [isAudioActive, totalWords, audioProgress]);
 
   const dialogueBreakdown = useMemo(() => {
-    return parseParagraphDialogue(segment.paragraph);
-  }, [segment.paragraph]);
+    return parseParagraphDialogue(segment.paragraph, knownCharacters, dialogueProvider);
+  }, [segment.paragraph, knownCharacters, dialogueProvider]);
 
   const dialogueSpeakers = useMemo(() => {
     return Array.from(new Set(dialogueBreakdown.filter(d => d.isDialogue).map(d => d.speaker)));

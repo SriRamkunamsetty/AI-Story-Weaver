@@ -55,4 +55,32 @@ describe('dialogueExtractor - Multi-Voice Character Dialogue Engine', () => {
     expect(parseParagraphDialogue('')).toEqual([]);
     expect(parseParagraphDialogue('   \n  ')).toEqual([]);
   });
+
+  it('does not truncate quoted dialogue containing contractions/apostrophes', () => {
+    const paragraph = `"I'm ready to go," said Elena. "Don't wait for me," she added.`;
+    const lines = parseParagraphDialogue(paragraph, ['Elena'], 'gemini');
+    const dialogueTexts = lines.filter(l => l.isDialogue).map(l => l.text);
+
+    expect(dialogueTexts).toContain("I'm ready to go,");
+    expect(dialogueTexts).toContain("Don't wait for me,");
+    // Regression guard: the old regex split on the internal apostrophe and produced "m ready to go,"
+    expect(dialogueTexts).not.toContain('m ready to go,');
+  });
+
+  it('does not misattribute a lowercase pronoun ("she"/"he") as the speaker name', () => {
+    const paragraph = '"We must find the gate before sunrise," she whispered, clutching the map tighter.';
+    const lines = parseParagraphDialogue(paragraph, ['Elena', 'Marcus'], 'gemini');
+    const dialogueLine = lines.find(l => l.isDialogue);
+
+    expect(dialogueLine).toBeDefined();
+    expect(dialogueLine?.speaker.toLowerCase()).not.toBe('she');
+  });
+
+  it('never assigns a character the same voice as the narrator, even when the name matches a gender indicator word', () => {
+    const cast = getVoiceCastMap(['Queen Lyra'], 'gemini', 'Aoede');
+
+    expect(cast.Narrator.voice).toBe('Aoede');
+    expect(cast['Queen Lyra'].genderOrPitch).toBe('female');
+    expect(cast['Queen Lyra'].voice).not.toBe('Aoede');
+  });
 });
