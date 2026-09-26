@@ -240,6 +240,7 @@ function StoryCreatorContent() {
 
   const handleResetToHome = (e?: React.MouseEvent) => {
     if (e) e.preventDefault();
+    globalStoryGraph.clear();
     setSegments([]);
     setTitle('');
     setInitialPrompt('');
@@ -648,6 +649,7 @@ function StoryCreatorContent() {
     setIsGenerating(true);
     setIsSettingsOpen(false);
     setError(null);
+    globalStoryGraph.clear();
     setSegments([]);
     setTitle('');
     setInitialPrompt(prompt);

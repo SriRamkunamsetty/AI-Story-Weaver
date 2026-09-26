@@ -90,10 +90,12 @@ export function getVoiceCastMap(
 
     if (FEMALE_INDICATORS.test(charName)) {
       gender = 'female';
-      selectedVoice = bank.female[idx % bank.female.length] || allVoices[idx % allVoices.length];
+      const femaleVoices = bank.female.filter(v => v !== narratorVoice);
+      selectedVoice = femaleVoices[idx % femaleVoices.length] || allVoices[idx % allVoices.length];
     } else if (MALE_INDICATORS.test(charName)) {
       gender = 'male';
-      selectedVoice = bank.male[idx % bank.male.length] || allVoices[idx % allVoices.length];
+      const maleVoices = bank.male.filter(v => v !== narratorVoice);
+      selectedVoice = maleVoices[idx % maleVoices.length] || allVoices[idx % allVoices.length];
     } else {
       selectedVoice = allVoices[idx % allVoices.length] || bank.neutral[0] || narratorVoice;
     }
@@ -124,8 +126,9 @@ export function parseParagraphDialogue(
   const castMap = getVoiceCastMap(knownCharacters, provider, defaultNarratorVoice);
   const lines: DialogueLine[] = [];
 
-  // Match double quotes, curved quotes, and single quotes with speech
-  const quoteRegex = /(["'“”«»][^"'“”«»]+["'“”«»])/g;
+  // Match paired double/curly/guillemet quotes, and isolated single-quoted speech
+  // (apostrophes inside contractions like "Don't" must not be treated as delimiters)
+  const quoteRegex = /("[^"]+"|“[^”]+”|«[^»]+»|(?<!\w)'[^']+'(?!\w))/g;
 
   let lastIndex = 0;
   let match: RegExpExecArray | null;
@@ -140,8 +143,10 @@ export function parseParagraphDialogue(
     if (quoteIndex > lastIndex) {
       const prose = paragraph.substring(lastIndex, quoteIndex).trim();
       if (prose.length > 0) {
-        // Check if prose ends with an introductory attribution (e.g. "Elena whispered:")
-        const preSpeechMatch = prose.match(/([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)\s+(?:said|whispered|shouted|replied|exclaimed|asked|called|cried|murmured)[\s,:]*$/i);
+        // Check if prose ends with an introductory attribution (e.g. "Elena whispered:").
+        // Deliberately case-sensitive: a case-insensitive [A-Z] would also match lowercase
+        // pronouns like "she"/"he" preceding the verb, misattributing dialogue to "she".
+        const preSpeechMatch = prose.match(/([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)\s+(?:said|whispered|shouted|replied|exclaimed|asked|called|cried|murmured)[\s,:]*$/);
         
         lines.push({
           id: `line_${counter++}`,
@@ -166,10 +171,12 @@ export function parseParagraphDialogue(
       }
     }
 
-    // Determine speaker from post-quote attribution (e.g. '"...", said Marcus.')
+    // Determine speaker from post-quote attribution (e.g. '"...", said Marcus.').
+    // Case-sensitive for the same reason as preSpeechMatch above: with /i, a lowercase
+    // pronoun like "she" in '"...", she whispered' would match [A-Z][a-z]+ as if it were a name.
     const postQuoteSlice = paragraph.substring(quoteIndex + quoteRaw.length, quoteIndex + quoteRaw.length + 80);
-    const postSpeechMatch = postQuoteSlice.match(/^[\s,]*(?:said|whispered|shouted|replied|exclaimed|asked|called|cried|murmured|gasped|growled)\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)/i)
-      || postQuoteSlice.match(/^[\s,]*([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)\s+(?:said|whispered|shouted|replied|exclaimed|asked|called|cried|murmured|gasped|growled)/i);
+    const postSpeechMatch = postQuoteSlice.match(/^[\s,]*(?:[Ss]aid|[Ww]hispered|[Ss]houted|[Rr]eplied|[Ee]xclaimed|[Aa]sked|[Cc]alled|[Cc]ried|[Mm]urmured|[Gg]asped|[Gg]rowled)\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)/)
+      || postQuoteSlice.match(/^[\s,]*([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)\s+(?:[Ss]aid|[Ww]hispered|[Ss]houted|[Rr]eplied|[Ee]xclaimed|[Aa]sked|[Cc]alled|[Cc]ried|[Mm]urmured|[Gg]asped|[Gg]rowled)/);
 
     let speaker = 'Narrator';
     if (postSpeechMatch && postSpeechMatch[1]) {
