@@ -116,4 +116,18 @@ describe('StoryGraphState - Narrative Continuity & Knowledge Graph', () => {
     expect(promptContext).toContain('Crystal Staff');
     expect(promptContext).toContain('determined');
   });
+
+  it('reports no contradictions for a clean story, while still surfacing informational guidance', () => {
+    const triples: EntityTriple[] = [
+      { source: 'Elena', sourceType: 'character', relationship: 'EXPLORES', target: 'Whispering Woods', targetType: 'location' },
+    ];
+    graph.ingestParagraphData(triples, 'Elena explores the Whispering Woods.', 0);
+
+    const audit = graph.getInconsistencyAudit();
+    // Regression guard: a clean story must not produce a "-" bulleted contradiction line
+    // (the modal counts those as blocking findings), only "*" informational guidance.
+    const contradictionLines = audit.split('\n').filter(l => l.trim().startsWith('-'));
+    expect(contradictionLines).toHaveLength(0);
+    expect(audit).toContain('Elena');
+  });
 });
