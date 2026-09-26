@@ -50,31 +50,40 @@ export function buildTimelineDag(segments: StorySegment[]): TimelineNode[] {
 }
 
 /**
- * Compiles story segments and narrative branches into a standalone interactive Twine / HTML text adventure
+ * Escapes text for safe insertion into the exported static HTML document.
+ */
+function escapeHtml(text: string): string {
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+/**
+ * Compiles story segments into a standalone interactive HTML reader.
+ *
+ * Note: the generator only has the single path the reader actually took (unselected
+ * choices were never generated), so every choice here intentionally advances to the
+ * same next passage rather than pretending to offer distinct, playable branches.
  */
 export function exportToTwineHtml(storyTitle: string, segments: StorySegment[]): string {
-  const safeTitle = storyTitle.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const safeTitle = escapeHtml(storyTitle);
 
   const passages = segments.map((seg, idx) => {
     const isLast = idx === segments.length - 1;
     const nextPassageName = `Scene_${idx + 2}`;
-    
-    let choicesHtml = '';
-    if (seg.choices && seg.choices.length > 0 && !isLast) {
-      choicesHtml = seg.choices.map(c => {
-        return `<div class="choice-btn" onclick="showPassage('${nextPassageName}')">✦ ${c.replace(/</g, '&lt;')}</div>`;
-      }).join('\n');
-    } else if (!isLast) {
-      choicesHtml = `<div class="choice-btn" onclick="showPassage('${nextPassageName}')">Continue to next chapter →</div>`;
-    } else {
-      choicesHtml = `<div class="the-end">❦ The End ❦</div>`;
-    }
+
+    const choicesHtml = !isLast
+      ? `<div class="choice-btn" onclick="showPassage('${nextPassageName}')">Continue to next chapter →</div>`
+      : `<div class="the-end">❦ The End ❦</div>`;
 
     return `
       <div id="Scene_${idx + 1}" class="passage" style="display: ${idx === 0 ? 'block' : 'none'};">
         <div class="chapter-badge">Chapter ${seg.chapterNumber || (idx + 1)}</div>
-        <h2>${seg.chapterTitle || `Scene ${idx + 1}`}</h2>
-        <div class="prose">${seg.paragraph.replace(/\n\n/g, '</p><p>')}</div>
+        <h2>${escapeHtml(seg.chapterTitle || `Scene ${idx + 1}`)}</h2>
+        <div class="prose">${escapeHtml(seg.paragraph).replace(/\n\n/g, '</p><p>')}</div>
         <div class="choices-container">
           ${choicesHtml}
         </div>

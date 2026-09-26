@@ -189,6 +189,14 @@ export const StoryGraphModal: React.FC<StoryGraphModalProps> = ({
     });
   }, [nodes, filterType, searchQuery]);
 
+  const filteredNodeIds = useMemo(() => new Set(filteredNodes.map(n => n.id)), [filteredNodes]);
+
+  // Edges whose endpoints are both currently visible, so a type/search filter never
+  // leaves relationship lines pointing at hidden nodes.
+  const filteredEdges = useMemo(() => {
+    return edges.filter(e => filteredNodeIds.has(e.source) && filteredNodeIds.has(e.target));
+  }, [edges, filteredNodeIds]);
+
   // Canvas pan handlers
   const handleMouseDown = (e: React.MouseEvent) => {
     if ((e.target as HTMLElement).tagName === 'svg' || (e.target as HTMLElement).id === 'graph-canvas-bg') {
@@ -203,10 +211,16 @@ export const StoryGraphModal: React.FC<StoryGraphModalProps> = ({
         x: e.clientX - dragStart.x,
         y: e.clientY - dragStart.y,
       });
-    } else if (draggedNodeId && containerRef.current) {
-      const rect = containerRef.current.getBoundingClientRect();
-      const rawX = (e.clientX - rect.left - pan.x) / zoom;
-      const rawY = (e.clientY - rect.top - pan.y) / zoom;
+    } else if (draggedNodeId && svgRef.current) {
+      // Convert browser-pixel coordinates into the SVG's 800x550 viewBox space first,
+      // since the container can render at any responsive size other than 800x550.
+      const svg = svgRef.current;
+      const rect = svg.getBoundingClientRect();
+      const viewBox = svg.viewBox.baseVal;
+      const svgX = (e.clientX - rect.left) * (viewBox.width / rect.width);
+      const svgY = (e.clientY - rect.top) * (viewBox.height / rect.height);
+      const rawX = (svgX - pan.x) / zoom;
+      const rawY = (svgY - pan.y) / zoom;
       setSimPositions(prev => ({
         ...prev,
         [draggedNodeId]: { x: rawX, y: rawY },
@@ -467,7 +481,7 @@ export const StoryGraphModal: React.FC<StoryGraphModalProps> = ({
 
                     <g transform={`translate(${pan.x}, ${pan.y}) scale(${zoom})`}>
                       {/* Relationship Edges */}
-                      {edges.map(edge => {
+                      {filteredEdges.map(edge => {
                         const srcPos = simPositions[edge.source];
                         const tgtPos = simPositions[edge.target];
                         if (!srcPos || !tgtPos) return null;
